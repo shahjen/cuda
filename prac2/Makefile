@@ -12,5 +12,8 @@ prac2:	prac2.cu Makefile
 prac2_device:	prac2_device.cu Makefile
 	nvcc prac2_device.cu -o prac2_device $(INC) $(NVCCFLAGS) $(LIB)
 
+montecarlo_average: montecarlo_average.cu Makefile
+	nvcc montecarlo_average.cu -o montecarlo_average $(INC) $(NVCCFLAGS) $(LIB)
+
 clean:
-	rm -f prac2 prac2_device
+	rm -f prac2 prac2_device montecarlo_average

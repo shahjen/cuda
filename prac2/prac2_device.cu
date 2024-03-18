@@ -144,6 +144,7 @@ int main(int argc, const char **argv){
   int paths_per_thread = (NPATH-1)/(128*blocks) + 1;
   cudaEventRecord(start);
   pathcalc<<<blocks, 128>>>(state,d_v,paths_per_thread,NPATH);
+  printf("Paths per thread: %d \n",paths_per_thread);
   cudaEventRecord(stop);
 
   cudaEventSynchronize(stop);

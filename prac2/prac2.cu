@@ -32,10 +32,9 @@ __global__ void pathcalc(float *d_z, float *d_v)
 
   // move array pointers to correct position
 
-  // version 1
+  // version 1 -- 
   ind = threadIdx.x + 2*N*blockIdx.x*blockDim.x;
-
-  // version 2
+  // version 2 -- time
   // ind = 2*N*threadIdx.x + 2*N*blockIdx.x*blockDim.x;
 
 
