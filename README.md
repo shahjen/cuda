@@ -1,0 +1,1 @@
+Personal repo for working out the practicals following [Dr Mike Giles']([url](https://people.maths.ox.ac.uk/gilesm/)) [CUDA course]([url](https://people.maths.ox.ac.uk/gilesm/cuda/index_Oden24.html)https://people.maths.ox.ac.uk/gilesm/cuda/index_Oden24.html) conducted at the Oden Institute, UT Austin.
