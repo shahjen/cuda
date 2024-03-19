@@ -36,7 +36,7 @@ void Gold_laplace3d(const long long &NX, const long long &NY, const long long &N
 int main(int argc, const char **argv)
 {
 
-	long long NX = 512, NY = 512, NZ = 512,
+	long long NX = 1024, NY = 1024, NZ = 1024,
 			  REPEAT = 20, bx, by, i, j, k, ind;
 	float *h_u1, *h_u2, *h_foo,
 		*d_u1, *d_u2, *d_foo;
@@ -126,7 +126,7 @@ int main(int argc, const char **argv)
 
 		d_foo = d_u1;
 		d_u1 = d_u2;
-		d_u2 = d_foo; // swap d_u1 and d_u2
+		d_u2 = d_foo; // swap d_u1 and d_u2 -- to reuse d_u1 as we have already allocated it
 	}
 
 	cudaEventRecord(stop);

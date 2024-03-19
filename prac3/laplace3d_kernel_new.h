@@ -4,12 +4,13 @@
 
 // device code
 
+__constant__ float sixth{1.0f / 6.0f};
 __global__ void GPU_laplace3d(long long NX, long long NY, long long NZ,
 							  const float *__restrict__ d_u1,
 							  float *__restrict__ d_u2)
 {
 	long long i, j, k, indg, IOFF, JOFF, KOFF;
-	float u2, sixth = 1.0f / 6.0f;
+	float u2;
 
 	//
 	// define global indices and array offsets
