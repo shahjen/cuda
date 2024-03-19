@@ -1,25 +1,28 @@
 
+// #define sixth 1.0f/6.0f
 ////////////////////////////////////////////////////////////////////////////////
-void Gold_laplace3d(long long NX, long long NY, long long NZ, float* u1, float* u2) 
+void Gold_laplace3d(const long long &NX, const long long &NY, const long long &NZ, const float *u1, float *u2)
 {
-  long long i, j, k, ind;
-  float     sixth=1.0f/6.0f;  // predefining this improves performance more than 10%
+	long long i, j, k, ind;
+	float sixth = 1.0f / 6.0f; // predefining this improves performance more than 10%
 
-  for (k=0; k<NZ; k++) {
-    for (j=0; j<NY; j++) {
-      for (i=0; i<NX; i++) {   // i loop innermost for sequential memory access
-	ind = i + j*NX + k*NX*NY;
+	for (k = 0; k < NZ; k++)
+	{
+		for (j = 0; j < NY; j++)
+		{
+			for (i = 0; i < NX; i++)
+			{ // i loop innermost for sequential memory access
+				ind = i + j * NX + k * NX * NY;
 
-        if (i==0 || i==NX-1 || j==0 || j==NY-1|| k==0 || k==NZ-1) {
-          u2[ind] = u1[ind];          // Dirichlet b.c.'s
-        }
-        else {
-          u2[ind] = ( u1[ind-1    ] + u1[ind+1    ]
-                    + u1[ind-NX   ] + u1[ind+NX   ]
-                    + u1[ind-NX*NY] + u1[ind+NX*NY] ) * sixth;
-        }
-      }
-    }
-  }
+				if (i == 0 || i == NX - 1 || j == 0 || j == NY - 1 || k == 0 || k == NZ - 1)
+				{
+					u2[ind] = u1[ind]; // Dirichlet b.c.'s
+				}
+				else
+				{
+					u2[ind] = (u1[ind - 1] + u1[ind + 1] + u1[ind - NX] + u1[ind + NX] + u1[ind - NX * NY] + u1[ind + NX * NY]) * sixth;
+				}
+			}
+		}
+	}
 }
-
