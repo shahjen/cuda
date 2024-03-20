@@ -21,8 +21,11 @@ float reduction_gold(float *idata, int len)
 {
 	float sum = 0.0f;
 	for (int i = 0; i < len; i++)
+	{
 		sum += idata[i];
-
+		if(len/2-1==i)
+			printf("Sum at .5 : %f\n", sum);
+	}
 	return sum;
 }
 
@@ -33,33 +36,23 @@ float reduction_gold(float *idata, int len)
 __global__ void reduction(float *g_odata, float *g_idata, const int nice_thread_size)
 {
 	// dynamically allocated shared memory -- shared by block
-
-	extern __shared__ float temp[];
-
+	float value{0.0f};
 	int tid = threadIdx.x;// + blockDim.x*blockIdx.x;
 	int global_id =  threadIdx.x + blockDim.x*blockIdx.x;
 	// first, each thread loads data into shared memory
 
-	temp[tid] = g_idata[global_id];
+	value = g_idata[global_id];
 	__syncthreads();
-
-	// handle non elegant thread size
-	if(tid>=nice_thread_size)
-		temp[tid-nice_thread_size]+=temp[tid];
-
-	// next, we perform binary tree reduction
-	for (int d = nice_thread_size/ 2; d > 0; d = d / 2)
-	{
-		__syncthreads(); // ensure previous step completed
-		if (tid < d)
-			temp[tid] += temp[tid + d];
-	}
+		
+	// shuffle instructions for q5
+	for (int d=warpSize/2; d>0; d=d/2)
+		value += __shfl_down_sync(-1, value, d);
 
 	// finally, first thread puts result into global memory
 	// printf("TID : %d\n", tid);
 	__syncthreads();
-	if (tid == 0)
-		g_odata[blockIdx.x] = temp[0];
+	if (0==tid%warpSize)
+		atomicAdd(&g_odata[0], value);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -70,14 +63,14 @@ int main(int argc, const char **argv)
 {
 	int num_blocks, num_threads, num_elements, mem_size, shared_mem_size, num_threads_nice;
 
-	float *h_data, *d_idata, *d_odata;
+	float *h_data, *d_idata, *d_odata, *h2;
 
 	// initialise card
 
 	findCudaDevice(argc, argv);
 
 	num_blocks = 2; // start with only 1 thread block
-	num_threads = 514;
+	num_threads = 512;
 	num_elements = num_blocks * num_threads;
 	mem_size = sizeof(float) * num_elements;
 
@@ -92,6 +85,9 @@ int main(int argc, const char **argv)
 	for (int i = 0; i < num_elements; i++)
 		h_data[i] = floorf(10.0f * (rand() / (float)RAND_MAX));
 
+	h2 = (float *)malloc(sizeof(float));
+	h2[0] = 0.0f;
+
 	// compute reference solution
 
 	float sum = reduction_gold(h_data, num_elements);
@@ -99,13 +95,14 @@ int main(int argc, const char **argv)
 	// allocate device memory input and output arrays
 
 	checkCudaErrors(cudaMalloc((void **)&d_idata, mem_size));
-	checkCudaErrors(cudaMalloc((void **)&d_odata, num_blocks*sizeof(float)));
+	checkCudaErrors(cudaMalloc((void **)&d_odata, sizeof(float)));
 
 	// copy host memory to device input array
 
 	checkCudaErrors(cudaMemcpy(d_idata, h_data, mem_size,
 							   cudaMemcpyHostToDevice));
-
+	checkCudaErrors(cudaMemcpy(d_odata, h2, sizeof(float),
+							   cudaMemcpyHostToDevice));
 	// execute the kernel
 
 	shared_mem_size = sizeof(float) * num_threads;
@@ -113,15 +110,13 @@ int main(int argc, const char **argv)
 	getLastCudaError("reduction kernel execution failed");
 
 	// copy result from device to host
-	checkCudaErrors(cudaMemcpy(h_data, d_odata, num_blocks*sizeof(float),
+
+	checkCudaErrors(cudaMemcpy(h_data, d_odata, sizeof(float),
 							   cudaMemcpyDeviceToHost));
 
 	// check results
 	// method - 1 global reduce
-	float sum_parallel{0.0f};
-	for(int i=0;i<num_blocks;i++)
-		sum_parallel+=h_data[i];
-	printf("reduction error = %f -%f = %f\n", sum_parallel, sum, sum_parallel - sum);
+	printf("reduction error = %f -%f = %f\n", h_data[0], sum, h_data[0] - sum);
 
 	// cleanup memory
 
