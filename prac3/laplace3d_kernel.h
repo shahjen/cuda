@@ -8,10 +8,12 @@
 // __constant__ float sixth=1.0f/6.0f;
 __global__ void GPU_laplace3d(long long NX, long long NY, long long NZ,
 							const float *__restrict__ d_u1,
-							  float *__restrict__ d_u2)
+							  float *__restrict__ d_u2,
+							  float *d_u3)
 {
 	long long i, j, k, indg, IOFF, JOFF, KOFF;
-	float u2, sixth = 1.0f / 6.0f;
+	int tid{threadIdx.x+blockDim.x*threadIdx.y};
+	float u2, sixth = 1.0f / 6.0f, squared_diff{0.0f};
 
 	//
 	// define global indices and array offsets
@@ -39,9 +41,15 @@ __global__ void GPU_laplace3d(long long NX, long long NY, long long NZ,
 			{
 				u2 = (d_u1[indg - IOFF] + d_u1[indg + IOFF] + d_u1[indg - JOFF] + d_u1[indg + JOFF] + d_u1[indg - KOFF] + d_u1[indg + KOFF]) * sixth;
 			}
+			squared_diff+=(u2-d_u2[indg])*(u2-d_u2[indg]);
 			d_u2[indg] = u2;
-
 			indg += KOFF;
 		}
 	}
+	__syncthreads();
+	for(int d=warpSize/2; d>0; d=d/2)
+		squared_diff += __shfl_down_sync(-1, squared_diff, d);
+	__syncthreads();
+	if (0==tid%warpSize)
+		atomicAdd(&d_u3[0], squared_diff);
 }
