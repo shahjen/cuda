@@ -29,6 +29,7 @@ int prac6(int nblocks, int nthreads)
 {
   float *h_x, *d_x;
   int   *h_i, *d_i;
+  double *h_d, *d_d;
   int   nsize, n; 
 
   // allocate memory for arrays
@@ -40,6 +41,8 @@ int prac6(int nblocks, int nthreads)
 
   h_i = (int *)malloc(nsize*sizeof(int));
   cudaMalloc((void **)&d_i, nsize*sizeof(int));
+  h_d = (double *)malloc(nsize*sizeof(double));
+  cudaMalloc((void **)&d_d, nsize*sizeof(double));
 
   // execute kernel for float
 
@@ -52,6 +55,12 @@ int prac6(int nblocks, int nthreads)
   my_first_kernel<<<nblocks,nthreads>>>(d_i);
   cudaMemcpy(h_i,d_i,nsize*sizeof(int),cudaMemcpyDeviceToHost);
   for (n=0; n<nsize; n++) printf(" n,  i  =  %d  %d \n",n,h_i[n]);
+
+  // execute kernel for doubles
+
+  my_first_kernel<<<nblocks,nthreads>>>(d_d);
+  cudaMemcpy(h_d,d_d,nsize*sizeof(double),cudaMemcpyDeviceToHost);
+  for (n=0; n<nsize; n++) printf(" n,  i  =  %d  %f \n",n,h_d[n]);
 
   // free memory 
 
