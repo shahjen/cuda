@@ -32,18 +32,21 @@ float reduction_gold(float *idata, int len)
 
 __global__ void reduction(float *g_odata, float *g_idata, const int nice_thread_size)
 {
-	// dynamically allocated shared memory
+	// dynamically allocated shared memory -- shared by block
 
 	extern __shared__ float temp[];
 
-	int tid = threadIdx.x + blockDim.x*blockIdx.x;
-
+	int tid = threadIdx.x;// + blockDim.x*blockIdx.x;
+	int global_id =  threadIdx.x + blockDim.x*blockIdx.x;
 	// first, each thread loads data into shared memory
 
-	temp[tid] = g_idata[tid];
+	temp[tid] = g_idata[global_id];
 	__syncthreads();
+
+	// handle non elegant thread size
 	if(tid>=nice_thread_size)
 		temp[tid-nice_thread_size]+=temp[tid];
+
 	// next, we perform binary tree reduction
 	for (int d = nice_thread_size/ 2; d > 0; d = d / 2)
 	{
@@ -53,12 +56,10 @@ __global__ void reduction(float *g_odata, float *g_idata, const int nice_thread_
 	}
 
 	// finally, first thread puts result into global memory
-	
+	// printf("TID : %d\n", tid);
+	__syncthreads();
 	if (tid == 0)
-	{
-		printf("Block ID : %d\n", blockIdx.x);
 		g_odata[blockIdx.x] = temp[0];
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -76,12 +77,13 @@ int main(int argc, const char **argv)
 	findCudaDevice(argc, argv);
 
 	num_blocks = 2; // start with only 1 thread block
-	num_threads = 513;
+	num_threads = 514;
 	num_elements = num_blocks * num_threads;
 	mem_size = sizeof(float) * num_elements;
 
 	num_threads_nice = 1<<((int)log2(num_threads));
 	printf("Num threads nice = %d\n", num_threads_nice);
+	printf("Mem size = %d\n", mem_size);
 	// allocate host memory to store the input data
 	// and initialize to integer values between 0 and 10
 
@@ -119,10 +121,7 @@ int main(int argc, const char **argv)
 	// method - 1 global reduce
 	float sum_parallel{0.0f};
 	for(int i=0;i<num_blocks;i++)
-	{
 		sum_parallel+=h_data[i];
-		printf("h_data[%d] = %d\n", i, h_data[i]);
-	}
 	printf("reduction error = %f -%f = %f\n", sum_parallel, sum, sum_parallel - sum);
 
 	// cleanup memory
