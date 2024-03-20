@@ -75,9 +75,10 @@ int main(int argc, const char **argv)
 	// initialise card
 
 	findCudaDevice(argc, argv);
+	findCudaDevice(argc, argv);
 
 	num_blocks = 2; // start with only 1 thread block
-	num_threads = 514;
+	num_threads = 513;
 	num_elements = num_blocks * num_threads;
 	mem_size = sizeof(float) * num_elements;
 
@@ -115,12 +116,17 @@ int main(int argc, const char **argv)
 	// copy result from device to host
 	checkCudaErrors(cudaMemcpy(h_data, d_odata, num_blocks*sizeof(float),
 							   cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_data, d_odata, num_blocks*sizeof(float),
+							   cudaMemcpyDeviceToHost));
 
 	// check results
 	// method - 1 global reduce
 	float sum_parallel{0.0f};
 	for(int i=0;i<num_blocks;i++)
+	{
 		sum_parallel+=h_data[i];
+		printf("h_data[%d] = %d\n", i, h_data[i]);
+	}
 	printf("reduction error = %f -%f = %f\n", sum_parallel, sum, sum_parallel - sum);
 
 	// cleanup memory
