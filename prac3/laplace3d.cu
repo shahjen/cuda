@@ -36,10 +36,10 @@ void Gold_laplace3d(const long long &NX, const long long &NY, const long long &N
 int main(int argc, const char **argv)
 {
 
-	long long NX = 1024, NY = 1024, NZ = 1024,
-			  REPEAT = 20, bx, by, i, j, k, ind;
-	float *h_u1, *h_u2, *h_foo,
-		*d_u1, *d_u2, *d_foo;
+	long long NX = 512, NY = 512, NZ = 512,
+			  REPEAT = 50, bx, by, i, j, k, ind;
+	float *h_u1, *h_u2, *h_u3, *h_u4,
+		*d_u1, *d_u2, *d_u3, *d_foo;
 
 	size_t bytes = sizeof(float) * NX * NY * NZ;
 
@@ -60,8 +60,12 @@ int main(int argc, const char **argv)
 
 	h_u1 = (float *)malloc(bytes);
 	h_u2 = (float *)malloc(bytes);
+	h_u3 = (float *)malloc(sizeof(float));
+	h_u4 = (float *)malloc(sizeof(float));
+	h_u4[0] = 0.0f;
 	checkCudaErrors(cudaMalloc((void **)&d_u1, bytes));
 	checkCudaErrors(cudaMalloc((void **)&d_u2, bytes));
+	checkCudaErrors(cudaMalloc((void **)&d_u3, sizeof(float)));
 
 	// initialise u1
 
@@ -121,9 +125,12 @@ int main(int argc, const char **argv)
 
 	for (i = 0; i < REPEAT; i++)
 	{
-		GPU_laplace3d<<<dimGrid, dimBlock>>>(NX, NY, NZ, d_u1, d_u2);
+		checkCudaErrors(cudaMemcpy(d_u3, h_u4, sizeof(float),
+							   cudaMemcpyHostToDevice)); // carries rms sum -- initialize to 0
+		GPU_laplace3d<<<dimGrid, dimBlock>>>(NX, NY, NZ, d_u1, d_u2, d_u3);
 		getLastCudaError("GPU_laplace3d execution failed\n");
-
+		checkCudaErrors(cudaMemcpy(h_u3, d_u3, sizeof(float), cudaMemcpyDeviceToHost));
+		printf("RMS error @ (t = %d) = %f\n", i, sqrtf(h_u3[0]));
 		d_foo = d_u1;
 		d_u1 = d_u2;
 		d_u2 = d_foo; // swap d_u1 and d_u2 -- to reuse d_u1 as we have already allocated it
